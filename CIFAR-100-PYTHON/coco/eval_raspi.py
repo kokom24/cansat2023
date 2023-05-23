@@ -1,10 +1,10 @@
-import tensorflow as tf
+import tflite_runtime.interpreter as tflite
 import numpy as np
 from PIL import Image
 import cv2
 
 # モデルの読み込み
-interpreter = tf.lite.Interpreter(model_path="model_mobile.tflite")
+interpreter = tflite.Interpreter(model_path="model_mobile.tflite")
 interpreter.allocate_tensors()
 
 # 入力と出力テンソルの情報を取得
