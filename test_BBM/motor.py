@@ -126,11 +126,18 @@
 #         else:
 #             print('もう一度入力してください')
 from gpiozero import Motor
+print ("1")
 from time import sleep
-
+print ("2")
 motor = Motor(17, 18)
+print ("3")
 motor.forward(0.2)
+print ("4")
 sleep(2)
+print ("5")
 motor.backward(0.5)
+print ("6")
 sleep(3)
+print ("7")
 motor.stop()
+print ("8")
