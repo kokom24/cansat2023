@@ -1,158 +1,95 @@
+# -*- coding: utf-8 -*-
+import sys
+sys.path.append('/home/pi/git/kimuralab/SensorModuleTest/BMX055')
+sys.path.append('/home/pi/git/kimuralab/SensorModuleTest/IM920')
+sys.path.append('/home/pi/git/kimuralab/SensorModuleTest/Motor')
+sys.path.append('/home/pi/git/kimuralab/IntegratedProgram/Running')
+sys.path.append('/home/pi/git/kimuralab/Other')
+
+
+import math
+import pigpio
 import time
-import datetime
-import random
-from other import print_xbee
+import traceback
 
-import xbee
-import motor
-import gps_navigate
-import gps
-import bmx055
-import other
+import BMX055
+import Motor
+import RunningGPS
 
+stuck = 0
+oLat = 0
+oLon = 0
+stuckNum = 0
+stuckCount = 0
+stuckStatus = 0
 
-def ue_jug():
-    ue_count = 0
-    """
-    ローバーの状態を確認する関数
-    通常状態：True
-    逆さになってる：False
-    加速度センサZ軸の正負で判定するよ
-    """
-    while 1:
-        za = []
-        for i in range(3):
-            accdata = bmx055.acc_read()
-            za.append(accdata[2])
-            time.sleep(0.2)
-        z = max(za)
+def stuckDetection(nLat = 0, nLon = 0):
+	global oLat
+	global oLon
+	global stuckNum
+	global stuckStatus
+	distance = 0.0
+	angle1, angle2 = 0.0, 0.0
+	rollCount = 0
 
-        if z >= 7.5:
-            xbee.str_trans('Upward')
-            print('上だよ')
-            break
-        else:
-            xbee.str_trans(f'Upside-down{ue_count}')
-            print(f'下だよ{ue_count}')
-            print(f'acc: {z}')
-            if ue_count > 2:
-                motor.move(30, 30, 0.008, False)
-            elif ue_count > 4:
-                motor.move(70, 70, 0.008, False)
-            elif ue_count > 6:
-                motor.move(100, 100, 0.05, False)
-            else:
-                motor.move(12, 12, 0.2, False)
-            time.sleep(2)
-            ue_count += 1
+	for i in range(10):
+		bmx055data = BMX055.bmx055_read()
+		if(math.fabs(bmx055data[0]) >= 6):
+			rollCount = rollCount + 1
+		time.sleep(0.05)
+	
+	if(rollCount >= 8):
+		#if rover has rolled over
+		if(not stuckStatus == 1):
+			stuckNum = 0
+		stuckStatus = 1
+		stuckNum = stuckNum + 1	
+	elif(not nLon == 0.0):
+		distance, angle1, angle2 = RunningGPS.calGoal(nLat, nLon, oLat, oLon, 0.0)
+		if(distance <= 5):
+			#if rover doesn't move
+			if not stuckStatus == 2:
+				stuckNum = 0
+			stuckStatus = 2
+			stuckNum = stuckNum + 1
+		else:
+			stuckStatus = 0
+			stuckNum = 0
+		oLat = nLat
+		oLon = nLon
+	print(stuckStatus, stuckNum, distance)
+	return [stuckStatus, stuckNum]
 
+def stuckEscape(mode = 0):
+	# --- Mode --- #
+	#   1 : Roll Over
+	if(mode == 1):
+		flug = 0
+		count = 0
+		while flug <= 5:
+			# --- Restart --- #
+			if(count == 0):
+				Motor.motor(0, 0, 2)
+				Motor.motor(40, 40, 2)
+				Motor.motor(35, 35, 1)
+				Motor.motor(28, 28, 1)
+				count = 40
+			Motor.motor(28, 28, 0.1)
 
-def stuck_jug(lat1, lon1, lat2, lon2, thd=1.0):
-    data_stuck = gps_navigate.vincenty_inverse(lat1, lon1, lat2, lon2)
-    if data_stuck['distance'] <= thd:
-        print_xbee(str(data_stuck['distance']) + '----!!!    stuck   !!!')
-        return False
-    else:
-        print_xbee(str(data_stuck['distance']) + '-----not stucked')
-        return True
+			# --- Roll Over Check --- #
+			if(stuckDetection() == 1):
+				flug = flug + 1	#Not Roll Over
+			else:
+				flug = 0		#Roll Over
+			count = count - 1 
+		Motor.motor(0, 0, 2)
+	else:
+		pass   
 
-
-def random(a, b, k):
-    ns = []
-    while len(ns) < k:
-        n = random.randint(a, b)
-        if not n in ns:
-            ns.append(n)
-    return ns
-
-
-def stuck_avoid_move(x):
-    if x == 0:
-        print_xbee('sutck_avoid_move():0')
-        motor.move(-100, -100, 5)
-        motor.move(-60, -60, 3)
-    elif x == 1:
-        print_xbee('sutck_avoid_move():1')
-        motor.move(40, -40, 1)
-        motor.move(100, 100, 5)
-    elif x == 2:
-        print_xbee('sutck_avoid_move():2')
-        motor.move(-100, 100, 2)
-        motor.move(100, 100, 5)
-
-    elif x == 3:
-        print_xbee('sutck_avoid_move():3')
-        motor.move(100, -100, 2)
-        motor.move(100, 100, 5)
-
-    elif x == 4:
-        print_xbee('sutck_avoid_move():4')
-        motor.move(40, -40, 1)
-        motor.move(-80, -100, 5)
-
-    elif x == 5:
-        print_xbee('sutck_avoid_move():5')
-        motor.move(40, -40, 1)
-        motor.move(-100, -80, 5)
-
-    elif x == 6:
-        print_xbee('sutck_avoid_move():6')
-        motor.move(100, -100, 3)
-        motor.move(100, 100, 3)
-
-
-def stuck_avoid():
-    print_xbee('start stuck  avoid')
-    flag = False
-    while 1:
-        lat_old, lon_old = gps.location()
-        # 0~6
-        for i in range(7):
-            stuck_avoid_move(i)
-            lat_new, lon_new = gps.location()
-            bool_stuck = stuck_jug(lat_old, lon_old, lat_new, lon_new, 1)
-            if bool_stuck == True:
-                flag = True
-                break
-        if flag:
-            break
-        # 3,2,1,0
-        for i in range(7):
-            stuck_avoid_move(7 - i)
-            lat_new, lon_new = gps.location()
-            bool_stuck = stuck_jug(lat_old, lon_old, lat_new, lon_new, 1)
-            if bool_stuck == False:
-                # if i == 1 or i == 4 or i == 5:
-                #     print('スタックもう一度引っかからないように避ける')
-                #     motor.move(-60, -60, 2)
-                #     motor.move(-60, 60, 0.5)
-                #     motor.move(80, 80, 3)
-                flag = True
-                break
-        if flag:
-            break
-        random = random(0, 6, 7)
-        for i in range(7):
-            stuck_avoid_move(random[i])
-            lat_new, lon_new = gps.location()
-            bool_stuck = stuck_jug(lat_old, lon_old, lat_new, lon_new, 1)
-            if bool_stuck == False:
-                # if i == 1 or i == 4 or i == 5:
-                #     print('スタックもう一度引っかからないように避ける')
-                #     motor.move(-60, -60, 2)
-                #     motor.move(-60, 60, 0.5)
-                #     motor.move(80, 80, 3)
-                flag = True
-                break
-        if flag:
-            break
-    print_xbee('complete stuck avoid')
-
-
-if __name__ == '__main__':
-    motor.setup()
-    ue_jug()
-    while 1:
-        a = int(input('出力入力しろ'))
-        b = float(input('時間入力しろ'))
-        motor.move(a, a, b)
+if __name__ == "__main__":
+	try:
+		print(stuckDetection())
+	except:
+		Motor.motor(0, 0, 2)
+		Motor.motor_stop()
+		print(traceback.format_exc())
