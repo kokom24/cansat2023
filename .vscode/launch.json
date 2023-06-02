@@ -1,0 +1,20 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Pyramid Application",
+            "type": "python",
+            "request": "launch",
+            "module": "pyramid.scripts.pserve",
+            "args": [
+                "${workspaceFolder}\\development.ini"
+            ],
+            "pyramid": true,
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}
