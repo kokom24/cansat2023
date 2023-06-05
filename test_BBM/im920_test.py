@@ -22,5 +22,5 @@ def send_message(message):
 message = 'Hello, IM920!'
 send_message(message)
 
-# シリアルポートのクローズ
+# シリアルポートのクローズa
 ser.close()
