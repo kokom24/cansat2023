@@ -12,7 +12,7 @@ input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
 # 予測対象の画像を読み込む
-image_path = "dummy_1.JPG"
+image_path = "dummy_1.jpg"
 image = cv2.imread(image_path)
 pix = 224
 
