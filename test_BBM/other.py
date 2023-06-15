@@ -1,14 +1,14 @@
 import os
 import linecache
-import im920
+import im920sl
 
 
-def print_im920(word):
+def print_im920sl(word):
     """
     printによる出力とIM920slによる送信を一緒に行うための関数
     """
     print(word)
-    im920.send(word)
+    # IM920sl送信のコードを追加
 
 
 def dir(path):
