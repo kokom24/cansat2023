@@ -19,7 +19,7 @@ def pressdetect_land(thd_press_land):
         delta_p = abs(latestpress - Prevpress)
 
         if 0.0 in pressdata:
-            print_xbee("bme280error!")
+            print_im920sl("bme280error!")
             press_count_land = 0
             press_judge_land = 2
 
