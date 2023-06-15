@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/CANSAT2023/sequence/bme280') 
+sys.path.append('/home/cansat2023/sequence/bme280') 
 
 import bme280 
 import time
