@@ -3,6 +3,7 @@ sys.path.append('/home/cansat2023/sequence/bme280')
 
 import bme280 
 import time
+import signal
 
 
 def pressdetect_release(thd_press_release, t_delta_release):
@@ -64,7 +65,10 @@ def pressdetect_land(anypress):
         press_judge_land = 2
     return press_count_land, press_judge_land
 
-
+def handle_interrupt(signal, frame):
+    # キーボード割り込み時の処理
+    print("Interrupted")
+    sys.exit(0)
 
 if __name__ == '__main__':
     bme280.bme280_setup()
@@ -80,6 +84,8 @@ if __name__ == '__main__':
     try:
         while 1:
             press_count_release, press_judge_release = pressdetect_release(0.3,0.5) 
+            pressdata = bme280.bme280_read()
+            print(f'count{press_count_release}\tjudge{press_judge_release}\ttemperature{pressdata[0]}\tpressure{pressdata[1]}\thumidity{pressdata[2]}')
             print(f'count{press_count_release}\tjudge{press_judge_release}')
             if press_judge_release == 1:
                 print('release detected')
@@ -90,7 +96,8 @@ if __name__ == '__main__':
     try:
         while 1:
             press_count_land, press_judge_land = pressdetect_land(0.1) #閾値0.1
-            print(f'count{press_count_land}\tjudge{press_judge_land}')
+            pressdata = bme280.bme280_read()
+            print(f'count{press_count_land}\tjudge{press_judge_land}\ttemperature{pressdata[0]}\tpressure{pressdata[1]}\thumidity{pressdata[2]}')
             if press_judge_land == 1:
                 print('land detected')
                 break
